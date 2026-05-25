@@ -4,7 +4,7 @@ TODO: Implement predict() and build_app() below.
 After implementing, launch the app from the notebook
 or directly with: python src/app.py
 """
-
+#deneme
 from __future__ import annotations
 
 import json
