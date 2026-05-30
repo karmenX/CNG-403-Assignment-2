@@ -36,8 +36,7 @@ def set_seed(seed: int) -> None:
 # -------------------------------------
 # YOUR TASK
 # -------------------------------------
-def train_one_epoch(
-) -> tuple[float, float]:
+def train_one_epoch( model,loader,criterion,optimizer,device) -> tuple[float, float]:
     """
     Run one full training pass over the DataLoader.
 
@@ -65,7 +64,32 @@ def train_one_epoch(
         accuracy (float): fraction of correctly classified samples.
         """
     
-    raise NotImplementedError("Implement train_one_epoch() in src/train.py")
+    model= model.train()  # set model to training mode
+
+    #assign initial values of total_loss, correct and total to 0
+    total_loss = 0.0 #needed to accumulate the total loss 
+    correct_predictions=0 #needed to accumulate the correct predictions
+    total_samples=0 #needed to accumulate the total number of samples
+    
+    #for each batch of images and labels
+    for images, labels in loader:
+
+        images = images.to(device) #move images to device
+        labels = labels.to(device) #move labels to device
+        optimizer.zero_grad() #set the gradients to 0
+        logits = model(images) #forward pass to compute logits
+        loss = criterion(logits, labels) #compute the loss 
+        loss.backward() #backward pass to compute gradients
+        optimizer.step() #update parameters using the optimizer
+
+        total_loss += loss.item() * len(labels) #accumulate the total loss weighted by batch size 
+        correct_predictions += (logits.argmax(dim=1) == labels).sum().item() #chooses the max logit of each predicted class and counts them if they are matching with the labels
+        total_samples += len(labels) #add the batch size to the total number of samples
+
+    avg_loss= total_loss / total_samples 
+    accuracy= correct_predictions / total_samples
+
+    return avg_loss, accuracy
 
 
 # -------------------------------------
