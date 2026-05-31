@@ -64,18 +64,17 @@ def train_one_epoch( model,loader,criterion,optimizer,device) -> tuple[float, fl
         accuracy (float): fraction of correctly classified samples.
         """
     
-    model= model.train()  # set model to training mode
+    model.train()  # set model to training mode
 
     #assign initial values of total_loss, correct and total to 0
     total_loss = 0.0 #needed to accumulate the total loss 
     correct_predictions=0 #needed to accumulate the correct predictions
     total_samples=0 #needed to accumulate the total number of samples
     
+    
     #for each batch of images and labels
     for images, labels in loader:
-
-        images = images.to(device) #move images to device
-        labels = labels.to(device) #move labels to device
+        images, labels = images.to(device), labels.to(device) #move the images and labels to device (GPU or CPU)
         optimizer.zero_grad() #set the gradients to 0
         logits = model(images) #forward pass to compute logits
         loss = criterion(logits, labels) #compute the loss 

@@ -27,7 +27,7 @@ def load_model(config_path: str = "../config.json") -> tuple[nn.Module, torch.de
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model  = build_model(cfg["model"]["backbone"], cfg["model"]["num_classes"])
-    ckpt   = Path(cfg["data"]["checkpoint_dir"]) / "best_model.pt"
+    ckpt   = Path(cfg["data"]["checkpoint_dir"]) / "best_model.pt"  #find the best model checpoint
 
     if not ckpt.exists():
         raise FileNotFoundError(
@@ -35,11 +35,11 @@ def load_model(config_path: str = "../config.json") -> tuple[nn.Module, torch.de
             "Run training (Section 4 of the notebook) first."
         )
 
-    model.load_state_dict(torch.load(ckpt, map_location=device))
+    model.load_state_dict(torch.load(ckpt, map_location=device)) #load the checkpoint weights into the model
     model = model.to(device)
     model.eval()
     print(f"Model loaded from {ckpt} (device: {device})")
-    return model, device
+    return model, device #return the loaded model and device for inference
 
 
 # -------------------------------------
@@ -61,6 +61,10 @@ def get_inference_transform(image_size: int = 224):
 # YOUR TASK 1
 # -------------------------------------
 def predict(
+    image: Image.Image,
+    model: nn.Module,
+    device: torch.device,
+    image_size: int = 224,
 ) -> dict:
     """
     Run inference on a single PIL image.
@@ -82,8 +86,12 @@ def predict(
     Returns:
         dict with keys "NOT YOU" and "YOU" mapping to float probabilities.
         """
+    x= get_inference_transform(image_size)(image).unsqueeze(0).to(device) #add batch dimension to match the resnet format and move to device
+    with torch.no_grad(): #prevent gradient storage for computational time and memory efficiency
+        logits = model(x) #run the model to get the logits
+    probs  = torch.softmax(logits, dim=1)[0] #get the probabilities and remove the batch dimension
 
-    raise NotImplementedError("Implement predict() in src/app.py")
+    return {"NOT YOU": probs[0], "YOU": probs[1]} #class 1 is "YOU" and class 0 is "NOT YOU"
 
 
 # -------------------------------------
@@ -106,9 +114,28 @@ def build_app(config_path: str = "../config.json"):
           • outputs  = gr.Label(num_top_classes=2, label="Prediction")
           • title    = "Personal Face Authentication"
           • description = a short description of what the app does
-    """
+    """ 
 
-    raise NotImplementedError("Implement build_app() in src/app.py")
+    import gradio as gr
+    
+    model, device = load_model(config_path) #load the model and device 
+
+    def inference_fun(image_array):
+        image = Image.fromarray(image_array).convert("RGB") #convert the numpy array to a PIL image in RGB format
+        return predict(image, model, device) #call the predict function to get the probabilities and return the results
+
+#define the gradio interface
+    return gr.Interface(
+        fn=inference_fun,
+        inputs=gr.Image(label="Upload your face"),
+        outputs=gr.Label(num_top_classes=2, label="Prediction"),
+        title="Personal Face Authentication",
+        description="Upload a face image to authenticate."
+    )
+    
+
+    
+
 
 
 # -------------------------------------
